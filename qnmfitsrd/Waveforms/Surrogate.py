@@ -109,7 +109,7 @@ class NRSur7dq4(BaseClass):
         
         # The surrogate models
         import gwsurrogate as gws
-        
+
         # Download the surrogate if it hasn't been already - this saves the 
         # surrogate .h5 file to the 
         # lib/python/site-packages/gwsurrogate/surrogate_downloads folder
@@ -136,7 +136,7 @@ class NRSur7dq4(BaseClass):
         # properties, making sure to use consistant values for the reference
         # epoch.
         import surfinBH as gwsremnant
-        
+
         # Load the surrogate remnant
         surrem = gwsremnant.LoadFits('NRSur7dq4Remnant')
         
@@ -307,7 +307,7 @@ class NRHybSur3dq8(BaseClass):
         
         # The surrogate models
         import gwsurrogate as gws
-        
+
         # Download the surrogate if it hasn't been already - this saves the 
         # surrogate .h5 file to the 
         # lib/python/site-packages/gwsurrogate/surrogate_downloads folder
@@ -347,7 +347,7 @@ class NRHybSur3dq8(BaseClass):
         # t=-100M from the peak of the waveform, can we be more careful with
         # this?
         import surfinBH as gwsremnant
-        
+
         # Load the surrogate remnant
         surrem = gwsremnant.LoadFits('NRSur3dq8Remnant')
         

@@ -1,14 +1,13 @@
-import numpy as np
 import matplotlib.pyplot as plt
-
-from scipy.optimize import minimize
-from scipy.interpolate import interp1d
-
-from tqdm import tqdm
+import numpy as np
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from scipy.interpolate import interp1d
+from scipy.optimize import minimize
+from tqdm import tqdm
 
 # Class to load QNM frequencies and mixing coefficients
 from .qnm import qnm
+
 qnm = qnm()
 
 

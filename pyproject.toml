@@ -23,7 +23,12 @@ dependencies = [
     "spherical",
     "qnm",
     "sxs",
-]
+    "invoke",
+    "black",
+    "flake8-nb",
+    "isort",
+    ] 
+
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -32,3 +37,10 @@ classifiers = [
 
 [project.urls]
 "Homepage" = "https://github.com/EliotFinch/qnmfits"
+
+[tool.isort]
+profile = "black" 
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = E203

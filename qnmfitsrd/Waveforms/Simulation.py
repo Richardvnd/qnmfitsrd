@@ -1,8 +1,6 @@
 import numpy as np
-
 import spherical
 import sxs
-
 from scipy import signal
 from tabulate import tabulate
 

@@ -1,7 +1,7 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
-import qnmfitsrd as qnmfits  
+import qnmfitsrd as qnmfits
 
 sim = qnmfits.SXS(ID=305, zero_time=(2,2))
 
