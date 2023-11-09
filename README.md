@@ -1,5 +1,5 @@
 # qnmfits
-Least-squares fitting of quasinormal modes to ringdown waveforms. This package follows from Eliot's ['qnmfits'](https://github.com/eliotfinch/qnmfits/tree/main) but with some additions to the code. 
+Least-squares fitting of quasinormal modes to ringdown waveforms. This package follows from Eliot's [`qnmfits`](https://github.com/eliotfinch/qnmfits/tree/main) but with some additions to the code. 
 
 ## Installation
 
@@ -9,4 +9,4 @@ Note that when first importing the package, there may be a short delay.
 
 ## Linting
 
-Code can be tidied automatically by running 'invoke tidy' in the command line. Note that 'black', 'flake8', and 'isort' need to be installed in your environment first. 
+Code can be tidied automatically by running `invoke tidy` in the command line. Note that `black`, `flake8`, and `isort` need to be installed in your environment first. 
