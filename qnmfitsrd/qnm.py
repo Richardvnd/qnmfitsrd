@@ -1,6 +1,7 @@
 import json
 import math
 import os.path
+from itertools import product
 
 import numpy as np
 import qnm as qnm_loader
@@ -325,8 +326,6 @@ class qnm:
 
         l = 9
 
-        # Reduce the number of integrals required (e.g. don't do negatives - symmetries too?)
-
         if os.path.isfile("quadratic_integrals.json"):
             with open("quadratic_integrals.json", "r") as file:
                 betas = json.load(file)
@@ -334,25 +333,14 @@ class qnm:
         else:
             betas = {}
             #test_deltas = {} 
-            for d in range (2,l+1):
-                print(f"Calculating integrals... {int(((d-2)/(l-2))*100)}%")
-                for b in range (-d,d+1):
-                    for h in range (2,l+1):
-                        for f in range (-h,h+1):
-                            for i in range (2,l+1):
-                                for j in range (-i,i+1):
-                                    fn = lambda theta, phi: math.sin(theta)*Yml(b, d, phi, theta)*Yml(f, h, phi, theta)*np.conj(Yml(j, i, phi, theta))
-                                    #test_fn = lambda theta, phi: math.sin(theta)*Yml(b, d, phi, theta)*np.conj(Yml(f, h, phi, theta)) 
-                                    value = dbl_integrate(fn, 0, 2*math.pi, 0, math.pi)[0]
-                                    #test_values =  dbl_integrate(test_fn, 0, 2*math.pi, 0, math.pi)[0]
-                                    betas[f'{d}{b}{h}{f}{i}{j}'] = value
-                                    #test_deltas[f'{d}{b}{h}{f}'] = test_values
-
+            for d, b, h, f, i, j in product(range(2, l+1), range(-l, l+1), repeat=3):
+                fn = lambda theta, phi: math.sin(theta)*Yml(b, d, phi, theta)*Yml(f, h, phi, theta)*np.conj(Yml(j, i, phi, theta))
+                betas[f'{d}{b}{h}{f}{i}{j}'] = dbl_integrate(fn, 0, 2*math.pi, 0, math.pi)[0]
+                #test_fn = lambda theta, phi: math.sin(theta)*Yml(b, d, phi, theta)*np.conj(Yml(f, h, phi, theta)) 
+                #test_deltas[f'{d}{b}{h}{f}'] = dbl_integrate(test_fn, 0, 2*math.pi, 0, math.pi)[0]
             integrals_file = json.dumps(betas)
             with open("quadratic_integrals.json", "w") as file:
                 file.write(integrals_file)     
-
-        breakpoint() 
 
         return betas
 
