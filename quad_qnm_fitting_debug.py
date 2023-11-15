@@ -5,7 +5,7 @@ import qnmfitsrd as qnmfits
 
 sim = qnmfits.SXS(ID=305, zero_time=(2,2))
 
-modes = [(2,0,0,1), (2,2,0,1), (2,2,0,1,2,2,0,1)]
+modes = [(3,3,0,1,3,3,0,1)]
 
 best_fit = qnmfits.multi_multimode_ringdown_fit(
     sim.times,

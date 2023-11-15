@@ -338,9 +338,10 @@ class qnm:
                 betas[f'{d}{b}{h}{f}{i}{j}'] = dbl_integrate(fn, 0, 2*math.pi, 0, math.pi)[0]
                 #test_fn = lambda theta, phi: math.sin(theta)*Yml(b, d, phi, theta)*np.conj(Yml(f, h, phi, theta)) 
                 #test_deltas[f'{d}{b}{h}{f}'] = dbl_integrate(test_fn, 0, 2*math.pi, 0, math.pi)[0]
+            
             integrals_file = json.dumps(betas)
             with open("quadratic_integrals.json", "w") as file:
-                file.write(integrals_file)     
+                file.write(integrals_file)  
 
         return betas
 
@@ -373,9 +374,9 @@ class qnm:
 
         for i, j, a, b, c, sign1, e, f, g, sign2 in indices:
             alpha = 0
-            for d in range(2,l+1):
-                for h in range (2, l+1):
-                    mu_1 = self.mu(d, b, a, b, c, sign1, chif)
+            for d in range(a,l+1):
+                mu_1 = self.mu(d, b, a, b, c, sign1, chif)
+                for h in range (e, l+1):
                     mu_2 = self.mu(h, f, e, f, g, sign2, chif)
                     if (b + f - j) == 0:
                         beta = 0
