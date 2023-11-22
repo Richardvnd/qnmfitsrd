@@ -5,6 +5,8 @@ from itertools import product
 
 import numpy as np
 import qnm as qnm_loader
+import quaternionic
+import spherical
 from scipy.integrate import dblquad as dbl_integrate
 from scipy.interpolate import interp1d
 from scipy.special import sph_harm as Yml
@@ -17,7 +19,7 @@ class qnm:
     https://arxiv.org/abs/1908.10377
     """
     
-    def __init__(self):
+    def __init__(self, l_max=9):
         """
         Initialise the class.
         """
@@ -28,6 +30,17 @@ class qnm:
         # Dictionary to store interpolated qnm functions for quicker 
         # evaluation
         self.interpolated_qnm_funcs = {}
+
+        # For integration of spin-weighted spherical harmonics
+        self.l_max = l_max
+        self.wigner = spherical.Wigner(self.l_max)
+
+        # Load files once when class is initialised
+        if os.path.isfile('integrals_real.json') and os.path.isfile('integrals_imag.json'):
+            with open('integrals_real.json', 'r') as f:
+                self.betas_real = json.load(f)
+            with open('integrals_imag.json', 'r') as f:
+                self.betas_imag = json.load(f)
         
     def interpolate(self, l, m, n):
         
@@ -308,13 +321,19 @@ class qnm:
         
         return mus
     
+    def sYlm(self, l, m, theta, phi, s=-2):
+        R = quaternionic.array.from_spherical_coordinates(theta, phi)
+        Y = self.wigner.sYlm(s, R)
+        return Y[self.wigner.Yindex(l, m)]
+    
+
     def get_betas(self):
         """
         Calculates the integral of three spherical harmonics to determine 
         'beta' coefficients that can be used to calculate the mixing coefficients
         for quadratic modes. 
 
-        The code calculates these once up to l=9 and saves then as a JSON locally. It 
+        The code calculates these once up to l=9 and saves then as a h5 locally. It 
         checks for this file before attempting to caclulate. 
     
         Returns
@@ -324,26 +343,49 @@ class qnm:
 
         """
 
-        l = 9
-
-        if os.path.isfile("quadratic_integrals.json"):
-            with open("quadratic_integrals.json", "r") as file:
-                betas = json.load(file)
-                betas = {str(k): v for k, v in betas.items()}
+        if hasattr(self, 'betas_real') and hasattr(self, 'betas_imag'):
+            betas_real = self.betas_real
+            betas_imag = self.betas_imag
         else:
-            betas = {}
-            #test_deltas = {} 
-            for d, b, h, f, i, j in product(range(2, l+1), range(-l, l+1), repeat=3):
-                fn = lambda theta, phi: math.sin(theta)*Yml(b, d, phi, theta)*Yml(f, h, phi, theta)*np.conj(Yml(j, i, phi, theta))
-                betas[f'{d}{b}{h}{f}{i}{j}'] = dbl_integrate(fn, 0, 2*math.pi, 0, math.pi)[0]
-                #test_fn = lambda theta, phi: math.sin(theta)*Yml(b, d, phi, theta)*np.conj(Yml(f, h, phi, theta)) 
-                #test_deltas[f'{d}{b}{h}{f}'] = dbl_integrate(test_fn, 0, 2*math.pi, 0, math.pi)[0]
-            
-            integrals_file = json.dumps(betas)
-            with open("quadratic_integrals.json", "w") as file:
-                file.write(integrals_file)  
+            betas_real = {}
+            betas_imag = {}
+            for d, b, h, f, i, j in product(range(2, self.l_max+1), range(-self.l_max, self.l_max+1), repeat=3):
 
-        return betas
+                if (f'{h}{f}{d}{b}{i}{j}') in betas_real:
+                    betas_real[f'{d}{b}{h}{f}{i}{j}'] = betas_real[f'{h}{f}{d}{b}{i}{j}']
+                    betas_imag[f'{d}{b}{h}{f}{i}{j}'] = betas_imag[f'{h}{f}{d}{b}{i}{j}']
+                    continue
+
+                if (b + f - j) != 0:
+                    betas_real[f'{d}{b}{h}{f}{i}{j}'] = 0
+                    betas_imag[f'{d}{b}{h}{f}{i}{j}'] = 0
+                    continue
+
+                f_real = lambda theta, phi: np.real(
+                                np.sin(theta) * 
+                                self.sYlm(d, b, theta, phi) * 
+                                self.sYlm(h, f, theta, phi) * 
+                                np.conj(self.sYlm(i, j, theta, phi)))
+        
+                f_imag = lambda theta, phi: np.imag(
+                                np.sin(theta) * 
+                                self.sYlm(d, b, theta, phi) * 
+                                self.sYlm(h, f, theta, phi) * 
+                                np.conj(self.sYlm(i, j, theta, phi)))
+
+                beta_real = dbl_integrate(f_real, 0, 2*math.pi, 0, math.pi)[0]
+                beta_imag = dbl_integrate(f_imag, 0, 2*math.pi, 0, math.pi)[0]
+
+                betas_real[f'{d}{b}{h}{f}{i}{j}'] = beta_real
+                betas_imag[f'{d}{b}{h}{f}{i}{j}'] = beta_imag
+            
+            with open('integrals_real.json', 'w') as f:
+                json.dump(betas_real, f)
+
+            with open('integrals_imag.json', 'w') as f:
+                json.dump(betas_imag, f)
+
+        return betas_real, betas_imag
 
     def alpha(self, indices, chif):
         """
@@ -366,23 +408,13 @@ class qnm:
 
         """
 
-        l = 9
+        betas_real, betas_imag = self.get_betas()
 
-        betas = self.get_betas()
-
-        alphas = [] 
-
-        for i, j, a, b, c, sign1, e, f, g, sign2 in indices:
-            alpha = 0
-            for d in range(a,l+1):
-                mu_1 = self.mu(d, b, a, b, c, sign1, chif)
-                for h in range (e, l+1):
-                    mu_2 = self.mu(h, f, e, f, g, sign2, chif)
-                    if (b + f - j) == 0:
-                        beta = 0
-                    else:
-                        beta = betas[f'{d}{b}{h}{f}{i}{j}']
-                    alpha += mu_1*mu_2*beta
-            alphas.append(alpha)
+        alphas = [sum(self.mu(d, b, a, b, c, sign1, chif) * 
+                      self.mu(h, f, e, f, g, sign2, chif) * 
+                      (betas_real[f'{d}{b}{h}{f}{i}{j}'] + 1j * betas_imag[f'{d}{b}{h}{f}{i}{j}']) 
+                      for d in range(2, self.l_max+1) 
+                      for h in range(2, self.l_max+1)) 
+                      for i, j, a, b, c, sign1, e, f, g, sign2 in indices]
 
         return alphas
