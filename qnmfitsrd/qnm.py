@@ -373,8 +373,8 @@ class qnm:
                                 self.sYlm(h, f, theta, phi) * 
                                 np.conj(self.sYlm(i, j, theta, phi)))
 
-                beta_real = dbl_integrate(f_real, 0, 2*math.pi, 0, math.pi)[0]
-                beta_imag = dbl_integrate(f_imag, 0, 2*math.pi, 0, math.pi)[0]
+                beta_real = dbl_integrate(f_real, 0, 2*np.pi, 0, np.pi)[0]
+                beta_imag = dbl_integrate(f_imag, 0, 2*np.pi, 0, np.pi)[0]
 
                 betas_real[f'{d}{b}{h}{f}{i}{j}'] = beta_real
                 betas_imag[f'{d}{b}{h}{f}{i}{j}'] = beta_imag
