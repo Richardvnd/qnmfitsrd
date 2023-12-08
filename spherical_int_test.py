@@ -7,7 +7,6 @@ import os
 import spherical
 import numpy as np 
 import quaternionic
-import spherical
 from scipy.integrate import dblquad as dbl_integrate
 from scipy.interpolate import interp1d
 from scipy.special import sph_harm as Yml

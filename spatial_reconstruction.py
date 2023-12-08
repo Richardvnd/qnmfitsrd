@@ -13,14 +13,15 @@ def mode_mapping(theta, phi, best_fit, mapping, l_max):
 
     ans = np.zeros_like(theta, dtype=complex)
     i = 0
+    
     for loop in range(len(best_fit['C'])):
         A = best_fit['C'][loop]
         if best_fit['modes'][loop]==mapping:
             ans += A * Y[:,:,wigner.Yindex(*best_fit['spherical_modes'][i])]
             i += 1
-
     ans /= np.max(np.abs(ans)) # normalise peak value
     return ans
+
 
 def spheroidal(theta, phi, mapping, l_max, chif):
     wigner = spherical.Wigner(l_max)
@@ -28,9 +29,16 @@ def spheroidal(theta, phi, mapping, l_max, chif):
     Y = wigner.sYlm(-2, R)
 
     ans = np.zeros_like(theta, dtype=complex)
-    l, m, n, p = mapping
-    for lp in np.arange(2, l_max+1):
-        ans += qnmfits.qnm.mu(lp, m, l, m, n, p, chif) * Y[:,:,wigner.Yindex(lp, m)]
+
+    if len(mapping)==4:
+        l, m, n, p = mapping
+        for lp in np.arange(2, l_max+1):
+            ans += qnmfits.qnm.mu(lp, m, l, m, n, p, chif) * Y[:,:,wigner.Yindex(lp, m)]
+    elif len(mapping)==8:
+        a, b, c, sign1, e, f, g, sign2 = mapping
+        j = b + f
+        for i in np.arange(2, l_max+1):
+            ans += qnmfits.qnm.alpha([(i,j)+mapping], chif) * Y[:,:,wigner.Yindex(i,j)]
 
     ans /= np.max(np.abs(ans)) # normalise peak value
     return ans
