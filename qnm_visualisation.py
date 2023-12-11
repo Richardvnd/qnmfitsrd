@@ -32,6 +32,10 @@ class qnm_viz:
                     self.all_mesh_sYlm[l, m] = self.mesh_sYlm(l, m, self.theta, self.phi)
 
 
+    def latlon(self):
+        return self.Lon, self.Lat
+
+
     def mesh_sYlm(self, l, m, theta, phi, s=-2):
         Y = np.empty_like(theta, dtype=complex)
         for i in range(theta.shape[0]):
@@ -63,7 +67,17 @@ class qnm_viz:
         axs[1,1].title.set_text('S_imag')
         axs[1,1].pcolormesh(Lon, Lat, np.imag(G), cmap=plt.cm.jet)
 
-        return axs 
+        return fig, axs 
+    
+
+    def plot_mapping_sphere(self, mapping, mode_mapping, expected):
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
+        ax.plot_surface(self.x, self.y, self.z, facecolors=plt.cm.jet(np.real(mode_mapping)), rstride=2, cstride=2, vmin=0, vmax=1)
+
+        return ax
+
 
     def animate_sYlm_sphere(self, sim, min_t0 = 0, max_t0 = 100, step = 1, modes=None, save = False):
 
@@ -80,7 +94,7 @@ class qnm_viz:
             t = sim.times[index] 
             h = np.sum([sim.h[mode][index] * self.all_mesh_sYlm[mode[0], mode[1]] for mode in spherical_modes], axis=0)
             ax.clear() 
-            ax.plot_surface(self.x, self.y, self.z, facecolors=plt.cm.viridis(h.real), rstride=2, cstride=2)
+            ax.plot_surface(self.x, self.y, self.z, facecolors=plt.cm.viridis(h.real), rstride=2, cstride=2,)
             ax.set_title(f'Time: {t*sim.Mf}')  
             return ax 
 
