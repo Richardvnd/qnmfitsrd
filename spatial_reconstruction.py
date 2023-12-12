@@ -15,8 +15,8 @@ def mode_mapping(theta, phi, best_fit, mapping, l_max):
     i = 0
     
     for loop in range(len(best_fit['C'])):
-        A = best_fit['C'][loop]
         if best_fit['modes'][loop]==mapping:
+            A = best_fit['C'][loop]
             ans += A * Y[:,:,wigner.Yindex(*best_fit['spherical_modes'][i])]
             i += 1
     ans /= np.max(np.abs(ans)) # normalise peak value

@@ -684,7 +684,7 @@ def multimode_ringdown_fit(times, data_dict, modes, Mf, chif, t0,
     return best_fit
 
 
-def mapping_multimode_ringdown_fit(times, data_dict, modes, Mf, chif, t0,
+def old_mapping_multimode_ringdown_fit(times, data_dict, modes, Mf, chif, t0,
                            t0_method='geq', T=100, spherical_modes=None,
                            mapping_mode=(2,2,0,1)):
     """
@@ -722,10 +722,133 @@ def mapping_multimode_ringdown_fit(times, data_dict, modes, Mf, chif, t0,
     data_dict = data_dict_mask
 
     # Frequencies
-    # ------------ 
+    # -----------
 
     modes.remove(mapping_mode)
     mod_modes = modes + len(spherical_modes)*[mapping_mode]
+
+    frequencies = np.array(qnm.omega_list(mod_modes, chif, Mf))
+
+    # Construct the coefficient matrix for use with NumPy's lstsq function.
+
+    # Mixing coefficients
+    # -------------------
+
+    # A list of lists for the mixing coefficient indices. The first list is
+    # associated with the first lm mode. The second list is associated with
+    # the second lm mode, and so on.
+    # e.g. [ [(2,2,2',2',0'), (2,2,3',2',0')],
+    #        [(3,2,2',2',0'), (3,2,3',2',0')] ]
+    indices_lists = [
+        [lm_mode+mode for mode in mod_modes] for lm_mode in spherical_modes]
+
+    # Convert each tuple of indices in indices_lists to a mu value
+    mu_lists = [qnm.mu_list(indices, chif) for indices in indices_lists]
+
+    count = 0
+    for j in range(len(mod_modes)):
+        if mod_modes[j]==mapping_mode:
+            for i in range(len(spherical_modes)):
+                if count==i:
+                    mu_lists[i][j] = 1.
+                else:
+                    mu_lists[i][j] = 0.
+            count += 1
+
+
+    # Construct coefficient matrix and solve
+    # --------------------------------------
+
+    # Construct the coefficient matrix
+    a = np.concatenate([np.array([
+        mu_lists[i][j]*np.exp(-1j*frequencies[j]*(times-t0))
+        for j in range(len(frequencies))]).T
+        for i in range(len(spherical_modes))])
+
+    # Solve for the complex amplitudes, C. Also returns the sum of
+    # residuals, the rank of a, and singular values of a.
+    C, res, rank, s = np.linalg.lstsq(a, data, rcond=None)
+
+    # Evaluate the model. This needs to be split up into the separate
+    # spherical harmonic modes.
+    model = np.einsum('ij,j->i', a, C)
+
+    # Split up the result into the separate spherical harmonic modes, and
+    # store to a dictionary. We also store the "weighted" complex amplitudes
+    # to a dictionary.
+    model_dict = {}
+    weighted_C = {}
+
+    for i, lm in enumerate(spherical_modes):
+        model_dict[lm] = model[i*len(times):(i+1)*len(times)]
+        weighted_C[lm] = np.array(mu_lists[i])*C
+
+    # Calculate the (sky-averaged) mismatch for the fit
+    mm = multimode_mismatch(times, model_dict, data_dict)
+
+    # Create a list of mode labels (can be used for plotting)
+    labels = [str(mode) for mode in modes]
+
+    # Store all useful information to a output dictionary
+    best_fit = {
+        'residual': res,
+        'mismatch': mm,
+        'C': C,
+        'weighted_C': weighted_C,
+        'data': data_dict,
+        'model': model_dict,
+        'model_times': times,
+        't0': t0,
+        'modes': mod_modes,
+        'spherical_modes': spherical_modes,
+        'mode_labels': labels,
+        'frequencies': frequencies
+        }
+
+    # Return the output dictionary
+    return best_fit
+
+
+def mapping_multimode_ringdown_fit(times, data_dict, modes, Mf, chif, t0,
+                           t0_method='geq', T=100, spherical_modes=None,
+                           mapping_modes=[(2,2,0,1)]):
+    """
+    mapping_mode: and (l,m,n,sign) specifying which QNM is to be 'mapped'
+    """
+    # Use the requested spherical modes
+    if spherical_modes is None:
+        spherical_modes = list(data_dict.keys())
+
+    # Mask the data with the requested method
+    if t0_method == 'geq':
+
+        data_mask = (times>=t0) & (times<t0+T)
+
+        times = times[data_mask]
+        data = np.concatenate(
+            [data_dict[lm][data_mask] for lm in spherical_modes])
+        data_dict_mask = {lm: data_dict[lm][data_mask] for lm in spherical_modes}
+
+    elif t0_method == 'closest':
+
+        start_index = np.argmin((times-t0)**2)
+        end_index = np.argmin((times-t0-T)**2)
+
+        times = times[start_index:end_index]
+        data = np.concatenate(
+            [data_dict[lm][start_index:end_index] for lm in spherical_modes])
+        data_dict_mask = {
+            lm: data_dict[lm][start_index:end_index] for lm in spherical_modes}
+
+    else:
+        print("""Requested t0_method is not valid. Please choose between
+              'geq' and 'closest'.""")
+
+    data_dict = data_dict_mask
+
+    mod_modes = modes.copy() 
+    for mapping_mode in mapping_modes:
+        mod_modes.remove(mapping_mode)
 
     linear_modes = []
     quadratic_modes = []
@@ -740,8 +863,6 @@ def mapping_multimode_ringdown_fit(times, data_dict, modes, Mf, chif, t0,
     
     mod_modes = linear_modes + quadratic_modes
 
-    frequencies = np.array(qnm.omega_list(mod_modes, chif, Mf))
-
     # Construct the coefficient matrix for use with NumPy's lstsq function.
 
     # Mixing coefficients
@@ -752,6 +873,7 @@ def mapping_multimode_ringdown_fit(times, data_dict, modes, Mf, chif, t0,
     # the second lm mode, and so on.
     # e.g. [ [(2,2,2',2',0'), (2,2,3',2',0')],
     #        [(3,2,2',2',0'), (3,2,3',2',0')] ]
+
     indices_lists_l = [
         [lm_mode+mode for mode in linear_modes] for lm_mode in spherical_modes]
     
@@ -764,15 +886,15 @@ def mapping_multimode_ringdown_fit(times, data_dict, modes, Mf, chif, t0,
 
     coef_lists = [mu + alpha for mu, alpha in zip(mu_lists, alpha_lists)]
 
-    count = 0
-    for j in range(len(mod_modes)):
-        if mod_modes[j]==mapping_mode:
-            for i in range(len(spherical_modes)):
-                if count==i:
-                    coef_lists[i][j] = 1.
-                else:
-                    coef_lists[i][j] = 0.
-            count += 1
+    coef_lists *= len(mapping_modes)
+    identity = np.eye(len(mapping_modes) * len(spherical_modes))
+    coef_lists = [list + i_row.tolist() for list, i_row in zip(coef_lists, identity)]
+    mod_modes += [mapping_mode for mapping_mode in mapping_modes for _ in range(len(spherical_modes))]
+
+    # Frequencies
+    # ------------ 
+
+    frequencies = np.array(qnm.omega_list(mod_modes, chif, Mf))
 
     # Construct coefficient matrix and solve
     # --------------------------------------
@@ -781,7 +903,9 @@ def mapping_multimode_ringdown_fit(times, data_dict, modes, Mf, chif, t0,
     a = np.concatenate([np.array([
         coef_lists[i][j]*np.exp(-1j*frequencies[j]*(times-t0))
         for j in range(len(frequencies))]).T
-        for i in range(len(spherical_modes))])
+        for i in range(len(spherical_modes)*len(mapping_modes))])
+    
+    data = np.tile(data, len(mapping_modes))
 
     # Solve for the complex amplitudes, C. Also returns the sum of
     # residuals, the rank of a, and singular values of a.
