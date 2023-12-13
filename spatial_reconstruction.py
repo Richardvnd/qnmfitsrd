@@ -1,3 +1,14 @@
+"""
+
+Updated: 13/12/2023
+
+These are functions Chris wrote that compute the spatial distribution of the mapped mode (mode_mapping) 
+and the expected distribution (spheroidal) based on the mixing coefficient. The final function (my_function)
+computes the 'spatial mismatch'. 
+
+
+"""
+
 import numpy as np
 import pickle
 import json
@@ -6,6 +17,8 @@ import qnmfitsrd as qnmfits
 import spherical
 import quaternionic
 
+
+
 def mode_mapping(theta, phi, best_fit, mapping, l_max):
     wigner = spherical.Wigner(l_max)
     R = quaternionic.array.from_spherical_coordinates(theta, phi)
@@ -13,7 +26,6 @@ def mode_mapping(theta, phi, best_fit, mapping, l_max):
 
     ans = np.zeros_like(theta, dtype=complex)
     i = 0
-    
     for loop in range(len(best_fit['C'])):
         if best_fit['modes'][loop]==mapping:
             A = best_fit['C'][loop]
@@ -29,7 +41,6 @@ def spheroidal(theta, phi, mapping, l_max, chif):
     Y = wigner.sYlm(-2, R)
 
     ans = np.zeros_like(theta, dtype=complex)
-
     if len(mapping)==4:
         l, m, n, p = mapping
         for lp in np.arange(2, l_max+1):
@@ -44,42 +55,20 @@ def spheroidal(theta, phi, mapping, l_max, chif):
     return ans
 
 
-def my_function(args):
+def spatial_mismatch(f, g, num_points=100):
 
-    mapping, sim, t0_vals, l_max, n_max, num_points = args
+    # TODO: switch to dbl quadrature 
 
-    QNMs = [(lam,mu,n,p) for lam in np.arange(2, l_max+1)
-                            for mu in np.arange(-lam, lam+1)
-                               for n in np.arange(0, n_max+1)
-                                  for p in (-1, +1)]
+    dx, dphi = 2./num_points, 2*np.pi/num_points
+    x = np.arange(-1, 1, dx)
+    phi = np.arange(-np.pi, np.pi, dphi)
+    Theta, Phi = np.meshgrid(np.arccos(x), phi)
 
-    spatial_mismatch = np.zeros_like(t0_vals, dtype=float)
-    for i, t0 in enumerate(t0_vals):
-        best_fit = qnmfits.mapping_multimode_ringdown_fit(sim.times,
-                                                sim.h,
-                                                modes=QNMs.copy(),
-                                                Mf=sim.Mf,
-                                                chif=sim.chif_mag,
-                                                t0=t0,
-                                                mapping_mode=mapping,
-                                                spherical_modes=[(l,m) for l in np.arange(2, l_max+1)
-                                                                       for m in np.arange(-l, l+1)])
+    numerator = np.abs(np.sum(f*np.conj(g)))
+    denominator = np.sqrt( np.abs(np.sum(f*np.conj(f))) * np.abs(np.sum(g*np.conj(g))) )
 
-        # I'm doing a simple, 2D "rectangle rule" integration
-        # should probably switch to using dbl quadrature
-        dx, dphi = 2./num_points, 2*np.pi/num_points
-        x = np.arange(-1, 1, dx)
-        phi = np.arange(-np.pi, np.pi, dphi)
-        Theta, Phi = np.meshgrid(np.arccos(x), phi)
+    arg = np.angle(np.sum(f * np.conj(g)))
 
-        f = mode_mapping(Theta, Phi, best_fit, mapping, l_max)
-        g = spheroidal(Theta, Phi, mapping, l_max, sim.chif_mag)
+    spatial_mismatch = 1 - numerator/denominator
 
-        numerator = np.abs(np.sum(f*np.conj(g)))
-        denominator = np.sqrt( np.abs(np.sum(f*np.conj(f))) * np.abs(np.sum(g*np.conj(g))) )
-
-        match = numerator/denominator
-
-        spatial_mismatch[i] = 1-match
-
-    return spatial_mismatch
+    return spatial_mismatch, arg

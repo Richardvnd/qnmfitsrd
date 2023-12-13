@@ -1,5 +1,14 @@
 """ 
-Code to calculate the integral of three spherical harmonics 
+
+Updated: 13/12/2023
+
+This code is intended to speed up the calculation of three spin weighted spherical harmonics using Clebsch-Gordan Coefficients. 
+Whilst there is a lot in the literature about calculating three spherical harmonics, and it is relatively 
+easy to change this to two spherical harmonics and one conjugate, there is not as much on spin weighed harmonics.
+
+One solution I found requires the sum of the spin weights to be 0. I think this might be the only option as,
+in general, the third spin weighted spherical harmonic looks like it needs s,l,m that are the sum of the other two. 
+
 """
 
 import json

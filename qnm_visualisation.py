@@ -1,3 +1,9 @@
+"""
+Updated: 13/12/2023
+
+A class of functions for visualising the spherical and spheroidal harmonics spatially and over time (as an animation). 
+
+"""
 
 import numpy as np 
 import matplotlib.pyplot as plt 
@@ -7,6 +13,7 @@ import quaternionic
 import spherical
 import qnmfitsrd as qnmfits
 from spatial_reconstruction import *
+import datetime
 
 class qnm_viz:
     def __init__(self, sim, l_max=9, precomp_sYlm = False):
@@ -87,6 +94,8 @@ class qnm_viz:
 
         G = spheroidal(np.pi/2-Lat, Lon, map, l_max, sim.chif_mag)
 
+        id = datetime.datetime.now()
+
         def update(step):
             best_fit = qnmfits.mapping_multimode_ringdown_fit(sim.times, 
                                                     sim.h, 
@@ -119,7 +128,7 @@ class qnm_viz:
         ani = FuncAnimation(fig, update, frames=range(min_t0, max_t0, step), interval=50)
 
         if save:
-            ani.save(f'mapping_animation_{map}.mp4', writer='ffmpeg')
+            ani.save(f'mapping_animation_{map}_{id}.mp4', writer='ffmpeg')
 
         return ani 
 
@@ -128,6 +137,7 @@ class qnm_viz:
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
 
+        ax.title(f'Mapping: {mapping}')
         ax.plot_surface(self.x, self.y, self.z, facecolors=plt.cm.jet(np.real(mode_mapping)), rstride=2, cstride=2, vmin=0, vmax=1)
 
         return ax
@@ -149,48 +159,6 @@ class qnm_viz:
             h = np.sum([sim.h[mode][index] * self.all_mesh_sYlm[mode[0], mode[1]] for mode in spherical_modes], axis=0)
             ax.clear() 
             ax.plot_surface(self.x, self.y, self.z, facecolors=plt.cm.viridis(h.real), rstride=2, cstride=2,)
-            ax.set_title(f'Time: {t*sim.Mf}')  
-            return ax 
-
-        ani = FuncAnimation(fig, update, frames=range(min_t0, max_t0, step), interval=1)
-
-        if save:
-            ani.save('animation.mp4', writer='ffmpeg')
-
-        return ani 
-
-    def animate_qnm_sphere(self, sim, model_modes, min_t0 = 0, max_t0 = 100, step = 1, spherical_modes=None, save = False):
-
-        # NEEDS FIXING / MAKING WORK 
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-
-        if spherical_modes is None:
-            spherical_modes = list(sim.h.keys())
-        else:
-            spherical_modes = spherical_modes 
-
-        best_fit = qnmfits.multimode_ringdown_fit(
-            sim.times,
-            sim.h,
-            model_modes,
-            Mf=sim.Mf,
-            chif=sim.chif_mag,
-            t0=0,
-            spherical_modes = spherical_modes
-            )
-
-        def update(step):
-            
-            for loop in range(len(best_fit['C'])):
-                A = best_fit['C'][loop]
-                ans += A * self.mesh_sYlm(self, l, m, theta, phi, s=-2)
-                i += 1
-            ans /= np.max(np.abs(ans)) # normalise peak value
-
-            ax.clear() 
-            ax.plot_surface(self.x, self.y, self.z, facecolors=plt.cm.viridis(h.real), rstride=2, cstride=2)
             ax.set_title(f'Time: {t*sim.Mf}')  
             return ax 
 

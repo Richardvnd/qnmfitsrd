@@ -1,3 +1,12 @@
+"""
+
+Updated: 13/12/2023
+
+This animates the spherical distribution of the spatial reconstruction.
+
+"""
+
+
 from matplotlib.animation import FuncAnimation
 import numpy as np
 import spherical
