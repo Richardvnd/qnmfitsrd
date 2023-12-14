@@ -64,11 +64,13 @@ def spatial_mismatch(f, g, num_points=100):
     phi = np.arange(-np.pi, np.pi, dphi)
     Theta, Phi = np.meshgrid(np.arccos(x), phi)
 
-    numerator = np.abs(np.sum(f*np.conj(g)))
+    z = np.sum(f*np.conj(g))
+
+    numerator = np.abs(z)
     denominator = np.sqrt( np.abs(np.sum(f*np.conj(f))) * np.abs(np.sum(g*np.conj(g))) )
 
-    arg = np.angle(np.sum(f * np.conj(g)))
+    arg = np.angle(z)
 
     spatial_mismatch = 1 - numerator/denominator
 
-    return spatial_mismatch, arg
+    return spatial_mismatch, arg, z

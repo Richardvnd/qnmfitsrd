@@ -10,6 +10,7 @@ import spherical
 from scipy.integrate import dblquad as dbl_integrate
 from scipy.interpolate import interp1d
 from scipy.special import sph_harm as Yml
+import os
 
 
 class qnm:
@@ -35,11 +36,14 @@ class qnm:
         self.l_max = l_max
         self.wigner = spherical.Wigner(self.l_max)
 
+        # Specify the directory to search for the files
+        directory = '/data/rvnd2/'
+
         # Load files once when class is initialised
-        if os.path.isfile('integrals_real.json') and os.path.isfile('integrals_imag.json'):
-            with open('integrals_real.json', 'r') as f:
+        if os.path.isfile(os.path.join(directory, 'integrals_real.json')) and os.path.isfile(os.path.join(directory, 'integrals_imag.json')):
+            with open(os.path.join(directory, 'integrals_real.json'), 'r') as f:
                 self.betas_real = json.load(f)
-            with open('integrals_imag.json', 'r') as f:
+            with open(os.path.join(directory, 'integrals_imag.json'), 'r') as f:
                 self.betas_imag = json.load(f)
         
     def interpolate(self, l, m, n):
