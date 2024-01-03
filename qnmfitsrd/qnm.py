@@ -36,14 +36,15 @@ class qnm:
         self.l_max = l_max
         self.wigner = spherical.Wigner(self.l_max)
 
-        # Specify the directory to search for the files
-        directory = '/data/rvnd2/'
+        package_directory = os.path.dirname(os.path.abspath(__file__))
+        self.real_file_path = os.path.join(package_directory, 'integrals_real.json')
+        self.imag_file_path = os.path.join(package_directory, 'integrals_imag.json')
 
         # Load files once when class is initialised
-        if os.path.isfile(os.path.join(directory, 'integrals_real.json')) and os.path.isfile(os.path.join(directory, 'integrals_imag.json')):
-            with open(os.path.join(directory, 'integrals_real.json'), 'r') as f:
+        if os.path.isfile(self.real_file_path) and os.path.isfile(self.imag_file_path):
+            with open(self.real_file_path, 'r') as f:
                 self.betas_real = json.load(f)
-            with open(os.path.join(directory, 'integrals_imag.json'), 'r') as f:
+            with open(self.imag_file_path, 'r') as f:
                 self.betas_imag = json.load(f)
         
     def interpolate(self, l, m, n):
@@ -351,6 +352,7 @@ class qnm:
             betas_real = self.betas_real
             betas_imag = self.betas_imag
         else:
+            print('Calculating beta coefficients...')
             betas_real = {}
             betas_imag = {}
             for d, b, h, f, i, j in product(range(2, self.l_max+1), range(-self.l_max, self.l_max+1), repeat=3):
@@ -383,10 +385,10 @@ class qnm:
                 betas_real[f'{d}{b}{h}{f}{i}{j}'] = beta_real
                 betas_imag[f'{d}{b}{h}{f}{i}{j}'] = beta_imag
             
-            with open('integrals_real.json', 'w') as f:
+            with open(self.real_file_path, 'w') as f:
                 json.dump(betas_real, f)
 
-            with open('integrals_imag.json', 'w') as f:
+            with open(self.imag_file_path, 'w') as f:
                 json.dump(betas_imag, f)
 
         return betas_real, betas_imag

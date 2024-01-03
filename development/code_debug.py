@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import qnmfitsrd as qnmfits
 from multiprocessing import Pool
 from spatial_reconstruction import *
-from qnm_visualisation import qnm_viz
+from development.qnm_visualisation import qnm_viz
 from spatial_reconstruction import *
 
 sim = qnmfits.SXS(ID=305, zero_time=(2,2))
