@@ -723,7 +723,10 @@ def mapping_multimode_ringdown_fit(times, data_dict, modes, Mf, chif, t0,
 
     mod_modes = modes.copy() 
     for mapping_mode in mapping_modes:
-        mod_modes.remove(mapping_mode)
+        if mapping_mode in mod_modes:
+            mod_modes.remove(mapping_mode)
+        else:
+            modes.append(mapping_mode)
 
     linear_modes = []
     quadratic_modes = []
