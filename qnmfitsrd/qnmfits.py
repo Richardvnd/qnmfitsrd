@@ -135,8 +135,7 @@ def multimode_mismatch(times, wf_dict_1, wf_dict_2):
     
     return 1 - (numerator/denominator)
 
-
-def ringdown_fit(times, data, modes, Mf, chif, t0, t0_method='geq', T=100):
+def ringdown_fit(times, data, modes, Mf, chif, t0, t0_method='geq', T=100, frequencies=None):
     """
     Perform a least-squares fit to some data using a ringdown model.
 
@@ -240,7 +239,10 @@ def ringdown_fit(times, data, modes, Mf, chif, t0, t0_method='geq', T=100):
     # Frequencies
     # -----------
     
-    frequencies = np.array(qnm.omega_list(modes, chif, Mf))
+    if frequencies is None:
+        frequencies = np.array(qnm.omega_list(modes, chif, Mf))
+    else:
+        frequencies = np.array(frequencies)
         
     # Construct coefficient matrix and solve
     # --------------------------------------
@@ -249,6 +251,161 @@ def ringdown_fit(times, data, modes, Mf, chif, t0, t0_method='geq', T=100):
     a = np.array([
         np.exp(-1j*frequencies[i]*(times-t0)) for i in range(len(frequencies))
         ]).T
+
+    # Solve for the complex amplitudes, C. Also returns the sum of residuals,
+    # the rank of a, and singular values of a.
+    C, res, rank, s = np.linalg.lstsq(a, data, rcond=None)
+    
+    # Evaluate the model
+    model = np.einsum('ij,j->i', a, C)
+    
+    # Calculate the mismatch for the fit
+    mm = mismatch(times, model, data)
+    
+    # Create a list of mode labels (can be used for plotting)
+    labels = [str(mode) for mode in modes]
+    
+    # Store all useful information to a output dictionary
+    best_fit = {
+        'residual': res,
+        'mismatch': mm,
+        'C': C,
+        'data': data,
+        'model': model,
+        'model_times': times,
+        't0': t0,
+        'modes': modes,
+        'mode_labels': labels,
+        'frequencies': frequencies
+        }
+    
+    # Return the output dictionary
+    return best_fit
+
+def ringdown_fit_dst(times, data, modes, Mf, chif, t0, t0_method='geq', T=100, frequencies=None):
+    """
+    Perform a least-squares fit to some data using a ringdown model.
+
+    Parameters
+    ----------
+    times : array_like
+        The times associated with the data to be fitted.
+        
+    data : array_like
+        The data to be fitted by the ringdown model.
+        
+    modes : array_like
+        A sequence of (l,m,n,sign) tuples to specify which QNMs to include in 
+        the ringdown model. For regular (positive real part) modes use 
+        sign=+1. For mirror (negative real part) modes use sign=-1. For 
+        nonlinear modes, the tuple has the form 
+        (l1,m1,n1,sign1,l2,m2,n2,sign2,...).
+        
+    Mf : float
+        The remnant black hole mass, which along with chif determines the QNM
+        frequencies.
+        
+    chif : float
+        The magnitude of the remnant black hole spin.
+        
+    t0 : float
+        The start time of the ringdown model.
+        
+    t0_method : str, optional
+        A requested ringdown start time will in general lie between times on
+        the default time array (the same is true for the end time of the
+        analysis). There are different approaches to deal with this, which can
+        be specified here.
+        
+        Options are:
+            
+            - 'geq'
+                Take data at times greater than or equal to t0. Note that
+                we still treat the ringdown start time as occuring at t0,
+                so the best fit coefficients are defined with respect to 
+                t0.
+
+            - 'closest'
+                Identify the data point occuring at a time closest to t0, 
+                and take times from there.
+                
+        The default is 'geq'.
+        
+    T : float, optional
+        The duration of the data to analyse, such that the end time is t0 + T. 
+        The default is 100.
+
+    Returns
+    -------
+    best_fit : dict
+        A dictionary of useful information related to the fit. Keys include:
+            
+            - 'residual' : float
+                The residual from the fit.
+            - 'mismatch' : float
+                The mismatch between the best-fit waveform and the data.
+            - 'C' : ndarray
+                The best-fit complex amplitudes. There is a complex amplitude 
+                for each ringdown mode.
+            - 'data' : ndarray
+                The (masked) data used in the fit.
+            - 'model': ndarray
+                The best-fit model waveform.
+            - 'model_times' : ndarray
+                The times at which the model is evaluated.
+            - 't0' : float
+                The ringdown start time used in the fit.
+            - 'modes' : ndarray
+                The ringdown modes used in the fit.
+            - 'mode_labels' : list
+                Labels for each of the ringdown modes (used for plotting).
+            - 'frequencies' : ndarray
+                The values of the complex frequencies for all the ringdown 
+                modes.
+    """
+
+    if isinstance(t0, list):
+        t0_list = t0
+        t0 = min(t0_list)
+        
+    # Mask the data with the requested method
+    if t0_method == 'geq':
+
+        data_mask = (times>=t0) & (times<t0+T)
+        
+        times = times[data_mask]
+        data = data[data_mask]
+        
+    elif t0_method == 'closest':
+        
+        start_index = np.argmin((times-t0)**2)
+        end_index = np.argmin((times-t0-T)**2)
+        
+        times = times[start_index:end_index]
+        data = data[start_index:end_index]
+        
+    else:
+        print("""Requested t0_method is not valid. Please choose between 'geq'
+            and 'closest'""")
+    
+    # Frequencies
+    # -----------
+    
+    if frequencies is None:
+        frequencies = np.array(qnm.omega_list(modes, chif, Mf))
+    else:
+        frequencies = np.array(frequencies)
+        
+    # Construct coefficient matrix and solve
+    # --------------------------------------
+    if t0_list: 
+        a = np.array([
+            np.exp(-1j*frequencies[i]*(times-t0_list[i])) * np.heaviside(times - t0_list[i], 1) for i in range(len(frequencies))
+            ]).T
+    else:
+        a = np.array([
+            np.exp(-1j*frequencies[i]*(times-t0)) for i in range(len(frequencies))
+            ]).T
 
     # Solve for the complex amplitudes, C. Also returns the sum of residuals,
     # the rank of a, and singular values of a.
@@ -594,7 +751,7 @@ def multimode_ringdown_fit(times, data_dict, modes, Mf, chif, t0,
     if frequencies is None:
         frequencies = np.array(qnm.omega_list(modes, chif, Mf))
     else:
-        frequencies = np.array(frequencies)
+        frequencies = frequencies
     
     # Construct the coefficient matrix for use with NumPy's lstsq function. 
     
@@ -1437,6 +1594,122 @@ def mismatch_t0_array(times, data, modes, Mf, chif, t0_array, t0_method='geq',
                 mm_list.append(best_fit['mismatch'])
         
     return mm_list
+
+
+def mismatch_t0_array(times, data, modes, Mf, chif, t0_array, t0_method='geq', 
+                      T_array=100, spherical_modes=None):
+    """
+    Calculate the mismatch for an array of start times.
+
+    Parameters
+    ----------
+    times : array_like
+        The times associated with the data to be fitted.
+        
+    data_dict : array_like or dict
+        The data to be fitted by the ringdown model. If a dict of 
+        spherical-harmonic modes, use the spherical_modes argument to specify
+        which modes to include in the fit.
+        
+    modes : array_like
+        A sequence of (l,m,n,sign) tuples to specify which QNMs to include in 
+        the ringdown model. For regular (positive real part) modes use 
+        sign=+1. For mirror (negative real part) modes use sign=-1. For 
+        nonlinear modes, the tuple has the form 
+        (l1,m1,n1,sign1,l2,m2,n2,sign2,...).
+        
+    Mf : float or array_like
+        The remnant black hole mass, which along with chif determines the QNM
+        frequencies. This can be a float, so that mass doesn't change with
+        time, or an array of the same length as times.
+        
+    chif : float or array_like
+        The magnitude of the remnant black hole spin. As with Mf, this can be
+        a float or an array.
+        
+    t0_array : array_like
+        The start times of the ringdown model.
+        
+    t0_method : str, optional
+        A requested ringdown start time will in general lie between times on
+        the default time array (the same is true for the end time of the
+        analysis). There are different approaches to deal with this, which can
+        be specified here.
+        
+        Options are:
+            
+            - 'geq'
+                Take data at times greater than or equal to t0. Note that
+                we still treat the ringdown start time as occuring at t0,
+                so the best fit coefficients are defined with respect to 
+                t0.
+
+            - 'closest'
+                Identify the data point occuring at a time closest to t0, 
+                and take times from there.
+                
+        The default is 'geq'.
+        
+    T_array : float or array, optional
+        The duration of the data to analyse, such that the end time is t0 + T. 
+        If an array, this should be the same length as t0_array. The default 
+        is 100.
+        
+    spherical_modes : array_like, optional
+        A sequence of (l,m) tuples to specify which spherical-harmonic modes 
+        the analysis should be performed on. If None, all the modes contained 
+        in data_dict are used. The default is None.
+
+    Returns
+    -------
+    mm_list : ndarray
+        The mismatch for each t0 value.
+    """
+    # List to store the mismatch from each choice of t0
+    mm_list = []
+    
+    # Make T array-like if a float is provided
+    if type(T_array) != np.ndarray:
+        T_array = T_array*np.ones(len(t0_array))
+    
+    # Fits with a fixed Kerr spectrum
+    # -------------------------------
+    
+    if (type(Mf) in [float, np.float64]) & (type(chif) in [float, np.float64]):
+        
+        if type(data) == dict:
+            for t0, T in zip(t0_array, T_array):
+                best_fit = multimode_ringdown_fit(
+                    times, data, modes, Mf, chif, t0, t0_method, T, 
+                    spherical_modes)
+                mm_list.append(best_fit['mismatch'])
+                
+        else:
+            for t0, T in zip(t0_array, T_array):
+                best_fit = ringdown_fit(
+                    times, data, modes, Mf, chif, t0, t0_method, T)
+                mm_list.append(best_fit['mismatch'])
+                
+    # Fits with a dynamic Kerr spectrum
+    # ---------------------------------
+    
+    else:
+        
+        if type(data) == dict:
+            for t0, T in zip(t0_array, T_array):
+                best_fit = dynamic_multimode_ringdown_fit(
+                    times, data, modes, Mf, chif, t0, t0_method, T, 
+                    spherical_modes)
+                mm_list.append(best_fit['mismatch'])
+                
+        else:
+            for t0, T in zip(t0_array, T_array):
+                best_fit = dynamic_ringdown_fit(
+                    times, data, modes, Mf, chif, t0, t0_method, T)
+                mm_list.append(best_fit['mismatch'])
+        
+    return mm_list
+    
 
 
 def mismatch_M_chi_grid(times, data, modes, Mf_minmax, chif_minmax, t0, 
