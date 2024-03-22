@@ -393,6 +393,7 @@ class qnm:
 
         return betas_real, betas_imag
 
+
     def alpha(self, indices, chif):
         """
         Calculates alphas (equivalent to mus for quadratic modes).
@@ -418,9 +419,37 @@ class qnm:
 
         alphas = [sum(self.mu(d, b, a, b, c, sign1, chif) * 
                       self.mu(h, f, e, f, g, sign2, chif) * 
-                      (betas_real[f'{d}{b}{h}{f}{i}{j}'] + 1j * betas_imag[f'{d}{b}{h}{f}{i}{j}']) 
+                      (betas_real[f'{d}{b}{h}{f}{i}{j}'] + 1j * betas_imag[f'{d}{b}{h}{f}{i}{j}'])
                       for d in range(2, self.l_max+1) 
                       for h in range(2, self.l_max+1)) 
                       for i, j, a, b, c, sign1, e, f, g, sign2 in indices]
 
         return alphas
+
+
+    def alternative_alpha(self, indices, chif):
+
+        i, j, a, b, c, sign1, e, f, g, sign2 = indices[0]
+
+        f_real = lambda theta, phi: np.real(
+                np.sin(theta) * 
+                [sum(self.mu(d, b, a, b, c, sign1, chif) * self.sYlm(d, b, theta, phi)
+                    for d in range(2, self.l_max+1))][0] * 
+                [sum(self.mu(h, f, e, f, g, sign2, chif) * self.sYlm(h, f, theta, phi)
+                    for h in range(2, self.l_max+1))][0] * 
+                np.conj(self.sYlm(i, j, theta, phi))
+                )
+        
+        f_imag = lambda theta, phi: np.imag(
+                np.sin(theta) * 
+                [sum(self.mu(d, b, a, b, c, sign1, chif) * self.sYlm(d, b, theta, phi)
+                    for d in range(2, self.l_max+1))][0] * 
+                [sum(self.mu(h, f, e, f, g, sign2, chif) * self.sYlm(h, f, theta, phi)
+                    for h in range(2, self.l_max+1))][0] * 
+                np.conj(self.sYlm(i, j, theta, phi))
+                )
+
+        beta_real = dbl_integrate(f_real, 0, 2*np.pi, 0, np.pi)[0]
+        beta_imag = dbl_integrate(f_imag, 0, 2*np.pi, 0, np.pi)[0]
+
+        return beta_real + 1j*beta_imag
