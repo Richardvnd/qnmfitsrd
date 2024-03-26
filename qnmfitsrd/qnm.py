@@ -427,24 +427,24 @@ class qnm:
         return alphas
 
 
-    def alternative_alpha(self, indices, chif):
+    def alternative_alpha(self, indices, chif, s1=-2, s2=0):
 
         i, j, a, b, c, sign1, e, f, g, sign2 = indices[0]
 
         f_real = lambda theta, phi: np.real(
                 np.sin(theta) * 
-                [sum(self.mu(d, b, a, b, c, sign1, chif) * self.sYlm(d, b, theta, phi)
+                [sum(self.mu(d, b, a, b, c, sign1, chif) * self.sYlm(d, b, theta, phi, s=s1)
                     for d in range(2, self.l_max+1))][0] * 
-                [sum(self.mu(h, f, e, f, g, sign2, chif) * self.sYlm(h, f, theta, phi)
+                [sum(self.mu(h, f, e, f, g, sign2, chif) * self.sYlm(h, f, theta, phi, s=s2)
                     for h in range(2, self.l_max+1))][0] * 
                 np.conj(self.sYlm(i, j, theta, phi))
                 )
         
         f_imag = lambda theta, phi: np.imag(
                 np.sin(theta) * 
-                [sum(self.mu(d, b, a, b, c, sign1, chif) * self.sYlm(d, b, theta, phi)
+                [sum(self.mu(d, b, a, b, c, sign1, chif) * self.sYlm(d, b, theta, phi, s=s1)
                     for d in range(2, self.l_max+1))][0] * 
-                [sum(self.mu(h, f, e, f, g, sign2, chif) * self.sYlm(h, f, theta, phi)
+                [sum(self.mu(h, f, e, f, g, sign2, chif) * self.sYlm(h, f, theta, phi, s=s2)
                     for h in range(2, self.l_max+1))][0] * 
                 np.conj(self.sYlm(i, j, theta, phi))
                 )
