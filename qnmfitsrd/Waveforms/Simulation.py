@@ -255,7 +255,9 @@ class SXS(BaseClass):
             
             # Get peak indices (up to ~merger) using the real part of the 22 
             # mode
-            h22_real = h22.data.real[:np.argmax(h22.abs)]
+            #TODO RD: This is a temporary fix to avoid the error in the following line (original commented out)
+            #h22_real = h22.data.real[:np.argmax(h22.abs)]
+            h22_real = np.array(h22.data).real[:np.argmax(np.abs(h22))]
             peak_indices = signal.find_peaks(h22_real)[0]
             
             # We will cut data before the index of the 20th peak from merger,
