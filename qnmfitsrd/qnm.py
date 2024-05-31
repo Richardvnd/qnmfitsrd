@@ -7,6 +7,7 @@ import numpy as np
 import qnm as qnm_loader
 import quaternionic
 import spherical
+from spherical import Wigner3j as w3j
 from scipy.integrate import dblquad as dbl_integrate
 from scipy.interpolate import interp1d
 from scipy.special import sph_harm as Yml
@@ -453,3 +454,17 @@ class qnm:
         beta_imag = dbl_integrate(f_imag, 0, 2*np.pi, 0, np.pi)[0]
 
         return beta_real + 1j*beta_imag
+    
+
+    def alpha_quick(self, indices, chif, s1=-2, s2=0, s3=-2):
+        i, j, a, b, c, sign1, e, f, g, sign2 = indices[0]
+
+        return  [sum(self.mu(d, b, a, b, c, sign1, chif) * 
+                     self.mu(h, f, e, f, g, sign2, chif) * 
+                     (((2*d+1)*(2*h+1)*(2*i+1))/(4*np.pi))**(1/2) * 
+                     w3j(d, h, i, -s1, -s2, s3) * 
+                     w3j(d, h, i, b, f, -j) * 
+                     (-1)**(j + s3)
+                     for d in range(2, self.l_max+1) 
+                     for h in range(2, self.l_max+1))
+                     for i, j, a, b, c, sign1, e, f, g, sign2 in indices]
