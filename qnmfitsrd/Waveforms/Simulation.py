@@ -1,6 +1,7 @@
 import numpy as np
 import spherical
 import sxs
+import os
 from scipy import signal
 from tabulate import tabulate
 
@@ -80,7 +81,7 @@ class SXS(BaseClass):
         # This saves the .json file to the /home/user/.cache/sxs folder,
         # in an appropiately named subfolder. Note, this defaults to the
         # highest available level.
-        self.metadata = sxs.load(f'SXS:BBH:{self.ID}/Lev/metadata.json')
+        self.metadata = sxs.load(f'SXS:BBH:{self.ID}/Lev/metadata.json', cache=False)
         
         # Highest available level
         self.highest_lev = int(self.metadata['simulation_name'][-1])
@@ -92,7 +93,7 @@ class SXS(BaseClass):
         # the requested level
         if self.highest_lev != self.level:
             self.metadata = sxs.load(
-                f'SXS:BBH:{self.ID}/Lev{self.level}/metadata.json')
+                f'SXS:BBH:{self.ID}/Lev{self.level}/metadata.json', cache=False)
         
         # Load in key pieces of metadata and set as class attributes
         self.load_metadata()
@@ -101,7 +102,7 @@ class SXS(BaseClass):
         # This saves the .h5 file to the same place as the metadata json. 
         self.data = sxs.load(
             f'SXS:BBH:{self.ID}/Lev{self.level}/rhOverM', 
-            extrapolation_order=extrapolation_order)
+            extrapolation_order=extrapolation_order, cache=False)
         
         # Load data and store to the h dictionary
         self.load_data()
