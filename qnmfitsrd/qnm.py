@@ -7,6 +7,7 @@ import numpy as np
 import qnm as qnm_loader
 import quaternionic
 import spherical
+import spheroidal
 from spherical import Wigner3j as w3j
 from scipy.integrate import dblquad as dbl_integrate
 from scipy.interpolate import interp1d
@@ -427,7 +428,7 @@ class qnm:
 
         return alphas
 
-
+    """
     def alternative_alpha(self, indices, chif, s1=-2, s2=0):
 
         i, j, a, b, c, sign1, e, f, g, sign2 = indices[0]
@@ -454,7 +455,7 @@ class qnm:
         beta_imag = dbl_integrate(f_imag, 0, 2*np.pi, 0, np.pi)[0]
 
         return beta_real + 1j*beta_imag
-    
+    """
 
     def alpha_quick(self, indices, chif, s1=-2, s2=0, s3=-2):
         i, j, a, b, c, sign1, e, f, g, sign2 = indices[0]
@@ -468,3 +469,30 @@ class qnm:
                      for d in range(2, self.l_max+1) 
                      for h in range(2, self.l_max+1))
                      for i, j, a, b, c, sign1, e, f, g, sign2 in indices]
+    
+
+    def alt_alpha(self, indices, chif, Mf):
+        i, j, a, b, c, sign1, e, f, g, sign2 = indices[0]
+        L = a + e
+        M = b + f
+        omega = self.omega_list([(a,b,c,sign1,e,f,g,sign2)], chif, Mf)
+        gamma = chif * omega[0]
+        S = spheroidal.harmonic(-2, L, M, gamma)
+
+        f_real = lambda theta, phi: np.real(
+                np.sin(theta) * 
+                S(theta, phi) *
+                np.conj(self.sYlm(i, j, theta, phi))
+                )
+
+        f_imag = lambda theta, phi: np.imag(
+                np.sin(theta) * 
+                S(theta, phi) *
+                np.conj(self.sYlm(i, j, theta, phi))
+                )
+
+        alpha_real = dbl_integrate(f_real, 0, 2*np.pi, 0, np.pi)[0]
+        alpha_imag = dbl_integrate(f_imag, 0, 2*np.pi, 0, np.pi)[0]
+
+        return alpha_real + 1j*alpha_imag
+
