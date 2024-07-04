@@ -13,6 +13,7 @@ from scipy.integrate import dblquad as dbl_integrate
 from scipy.interpolate import interp1d
 from scipy.special import sph_harm as Yml
 import os
+from functools import lru_cache
 
 
 class qnm:
@@ -471,12 +472,13 @@ class qnm:
                      for i, j, a, b, c, sign1, e, f, g, sign2 in indices]
     
 
+    # @lru_cache(maxsize=None) - need to make this hashable
     def alt_alpha(self, indices, chif, Mf):
         i, j, a, b, c, sign1, e, f, g, sign2 = indices[0]
         L = a + e
         M = b + f
         omega = self.omega_list([(a,b,c,sign1,e,f,g,sign2)], chif, Mf)
-        gamma = chif * omega[0]
+        gamma = Mf * chif * omega[0]
         S = spheroidal.harmonic(-2, L, M, gamma)
 
         f_real = lambda theta, phi: np.real(
