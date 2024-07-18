@@ -498,3 +498,34 @@ class qnm:
 
         return alpha_real + 1j*alpha_imag
 
+
+# @lru_cache(maxsize=None) - need to make this hashable
+    def alt_alpha_mod(self, indices, chif, Mf):
+        i, j, a, b, c, sign1, e, f, g, sign2 = indices[0]
+
+        ans = []
+        for L in [2, 3, 4, 5, 6, 7, 8, 9]: 
+            M = b + f
+            omega = self.omega_list([(a,b,c,sign1,e,f,g,sign2)], chif, Mf)
+            gamma = Mf * chif * omega[0]
+            S = spheroidal.harmonic(-2, L, M, gamma)
+
+            f_real = lambda theta, phi: np.real(
+                    np.sin(theta) * 
+                    S(theta, phi) *
+                    np.conj(self.sYlm(i, j, theta, phi))
+                    )
+
+            f_imag = lambda theta, phi: np.imag(
+                    np.sin(theta) * 
+                    S(theta, phi) *
+                    np.conj(self.sYlm(i, j, theta, phi))
+                    )
+
+            alpha_real = dbl_integrate(f_real, 0, 2*np.pi, 0, np.pi)[0]
+            alpha_imag = dbl_integrate(f_imag, 0, 2*np.pi, 0, np.pi)[0]
+
+            ans.append(alpha_real + 1j*alpha_imag)
+
+        return ans
+
