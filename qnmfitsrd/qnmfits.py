@@ -94,6 +94,56 @@ def mismatch(times, wf_1, wf_2):
     return 1 - (numerator/denominator)
 
 
+def data_temporal_mismatch(times, h_1, h_2):
+    """
+    Calculates the mismatch between two complex waveforms.
+
+    Parameters
+    ----------
+    times : array_like
+        The times at which the waveforms are evaluated.
+        
+    h_1, h_2 : array_like
+        The two waveforms to calculate the mismatch between.
+        
+    RETURNS
+    -------
+    M : float
+        The mismatch between the two waveforms.
+    """
+    numerator = np.real(np.trapz(h_1 * np.conjugate(h_2), x=times))
+    
+    denominator = np.sqrt(np.trapz(np.real(h_1 * np.conjugate(h_1)), x=times)
+                         *np.trapz(np.real(h_2 * np.conjugate(h_2)), x=times))
+    
+    return 1 - (numerator/denominator)
+
+
+def data_spatial_mismatch(times, h_1, h_2):
+    """
+    Calculates the mismatch between two complex waveforms.
+
+    Parameters
+    ----------
+    times : array_like
+        The times at which the waveforms are evaluated.
+        
+    h_1, h_2 : array_like
+        The two waveforms to calculate the mismatch between.
+        
+    RETURNS
+    -------
+    M : float
+        The mismatch between the two waveforms.
+    """
+    numerator = np.real(np.trapz(h_1 * np.conjugate(h_2), x=times))
+    
+    denominator = np.sqrt(np.trapz(np.real(h_1 * np.conjugate(h_1)), x=times)
+                         *np.trapz(np.real(h_2 * np.conjugate(h_2)), x=times))
+    
+    return 1 - (numerator/denominator)
+
+
 def multimode_mismatch(times, wf_dict_1, wf_dict_2):
     """
     Calculates the multimode (sky-averaged) mismatch between two dictionaries 
