@@ -94,7 +94,7 @@ def mismatch(times, wf_1, wf_2):
     return 1 - (numerator/denominator)
 
 
-def data_temporal_mismatch(times, h_1, h_2):
+def data_mismatch(times, h_1, h_2):
     """
     Calculates the mismatch between two complex waveforms.
 
@@ -104,42 +104,40 @@ def data_temporal_mismatch(times, h_1, h_2):
         The times at which the waveforms are evaluated.
         
     h_1, h_2 : array_like
-        The two waveforms to calculate the mismatch between.
+        The two waveforms or dictionaries to calculate the mismatch between.
         
     RETURNS
     -------
     M : float
         The mismatch between the two waveforms.
     """
-    numerator = np.real(np.trapz(h_1 * np.conjugate(h_2), x=times))
+
+    #TODO: Should the denominators be abs? Presumably if numerator is abs. 
+
+    if type(h_1) == dict and type(h_2) == dict:
+
+        keys = list(h_1.keys())
     
-    denominator = np.sqrt(np.trapz(np.real(h_1 * np.conjugate(h_1)), x=times)
-                         *np.trapz(np.real(h_2 * np.conjugate(h_2)), x=times))
-    
-    return 1 - (numerator/denominator)
-
-
-def data_spatial_mismatch(times, h_1, h_2):
-    """
-    Calculates the mismatch between two complex waveforms.
-
-    Parameters
-    ----------
-    times : array_like
-        The times at which the waveforms are evaluated.
+        numerator = np.abs(sum([
+            np.trapz(h_1[key] * np.conjugate(h_2[key]), x=times) 
+            for key in keys]))
         
-    h_1, h_2 : array_like
-        The two waveforms to calculate the mismatch between.
+        wf_1_norm = sum([
+            np.trapz(np.abs(h_1[key] * np.conjugate(h_1[key])), x=times) 
+            for key in keys])
         
-    RETURNS
-    -------
-    M : float
-        The mismatch between the two waveforms.
-    """
-    numerator = np.real(np.trapz(h_1 * np.conjugate(h_2), x=times))
-    
-    denominator = np.sqrt(np.trapz(np.real(h_1 * np.conjugate(h_1)), x=times)
-                         *np.trapz(np.real(h_2 * np.conjugate(h_2)), x=times))
+        wf_2_norm = sum([
+            np.trapz(np.abs(h_2[key] * np.conjugate(h_2[key])), x=times) 
+            for key in keys])
+        
+        denominator = np.sqrt(wf_1_norm*wf_2_norm)
+
+    else:    
+
+        numerator = np.abs(np.trapz(h_1 * np.conjugate(h_2), x=times))
+
+        denominator = np.sqrt(np.trapz(np.abs(h_1 * np.conjugate(h_1)), x=times)
+                            *np.trapz(np.abs(h_2 * np.conjugate(h_2)), x=times))
     
     return 1 - (numerator/denominator)
 
@@ -184,6 +182,7 @@ def multimode_mismatch(times, wf_dict_1, wf_dict_2):
     denominator = np.sqrt(wf_1_norm*wf_2_norm)
     
     return 1 - (numerator/denominator)
+
 
 def ringdown_fit(times, data, modes, Mf, chif, t0, t0_method='geq', T=100, frequencies=None):
     """
